@@ -163,7 +163,7 @@
         }
         return `
             <div class="container-title">
-                <img class="category-logo" src="../img/lang/${categoryName}.svg">
+                <img class="category-logo" src="../img/lang/${encodeURIComponent(categoryName)}.svg">
                 <span>${categoryName}</span>
             </div>
             <div class="container-list">
@@ -187,16 +187,10 @@
 </script>
 
 <script>
-    // Initial
-    updateProjectList(vscode.getState());
-</script>
-
-<script>
     // Message Listener
     const messageHandler = {
         projectListUpdate: (message) => {
             // 更新项目列表数据
-            vscode.setState(message.value);
             updateProjectList(message.value);
         },
         titleUpdate: (message) => {
@@ -207,6 +201,13 @@
             // 隐藏项目分类图标importent.styleSheets[0];
             styleSheet.insertRule('.container-title>img { display: none; }', 0);
         },
+        categoryMaxHeight: (message) => {
+            // 项目分类最大高度
+            let elem = document.getElementsByClassName('container');
+            for (let i = 0; i < elem.length; i++) {
+                elem[i].style.maxHeight = message.value;
+            }
+        }
     };
 
     window.addEventListener('message', event => {
@@ -237,6 +238,15 @@
     // Edit Button
     editButton.addEventListener('click', () => {
         modeSwitch('edit');
+    });
+</script>
+
+<script>
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        vscode.postMessage({
+            command: 'requireUpdate'
+        });
     });
 </script>
 

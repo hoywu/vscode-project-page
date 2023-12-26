@@ -13,8 +13,9 @@
     "directory",
     "workspace"
   ],
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "hoywu",
+  "repository": "https://github.com/hoywu/project-page",
   "engines": {
     "vscode": "^1.84.0"
   },
@@ -32,32 +33,60 @@
       "properties": {
         "project-page.showWelcomePageWhenStartup": {
           "type": "boolean",
-          "default": true,
-          "description": "Show welcome page when startup"
+          "description": "Show welcome page when startup",
+          "default": true
         },
         "project-page-welcomePageTitle": {
           "type": "string",
-          "default": "Welcome back",
-          "description": "Welcome page title"
+          "description": "Welcome page title",
+          "default": "Welcome back"
         },
         "project-page-showCategoryIcon": {
           "type": "boolean",
-          "default": true,
-          "description": "Show category icon"
+          "description": "Show category icon on welcome page",
+          "default": true
         },
-        "project-page-categoryPlugins": {
+        "project-page-categoryMaxHeight": {
+          "type": "string",
+          "description": "Maximum display height of category on welcome page",
+          "default": "600px"
+        },
+        "project-page-autoDetectCategory": {
           "type": "object",
-          "description": "Category plugins",
+          "description": "If the project path contains any of the array elements, the project will be classified into this category when first imported",
           "default": {
+            "Android": [
+              "AndroidStudioProjects"
+            ],
             "C++": [
-              "ms-vscode.cpptools-extension-pack",
-              "ms-vscode.cpptools",
-              "ms-vscode.cpptools-themes",
-              "ms-vscode.cmake-tools",
-              "twxs.cmake",
-              "visualstudioexptteam.vscodeintellicode",
-              "visualstudioexptteam.intellicode-api-usage-examples"
+              "CLionProjects"
+            ],
+            "C#": [
+              "RiderProjects"
+            ],
+            "Go": [
+              "GolandProjects"
+            ],
+            "Java": [
+              "IdeaProjects"
+            ],
+            "Python": [
+              "PycharmProjects"
+            ],
+            "Rust": [
+              "RustroverProjects"
+            ],
+            "Web": [
+              "WebstormProjects"
             ]
+          }
+        },
+        "project-page-categoryProfile": {
+          "type": "object",
+          "description": "[Unimplemented] When a project of a category is opened, automatically activate the corresponding vscode profile",
+          "default": {
+            "C": "C++",
+            "C++": "C++"
           }
         }
       }
@@ -85,8 +114,5 @@
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
     "typescript": "^5.2.2"
-  },
-  "dependencies": {
-    "sqlite3": "^5.1.6"
   }
 }

@@ -2,8 +2,6 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const objUtil = require('./utils/project-list-obj');
-const wsStorageUtil = require('./utils/ws-storage');
-const dbUtil = require('./utils/vscdb');
 let wvPanel = null;
 
 // Command
@@ -12,14 +10,12 @@ const C_showWelcomePage = 'project-page.showWelcomePage';
 const S_showWelcomePageWhenStartup = 'project-page.showWelcomePageWhenStartup';
 const S_welcomePageTitle = 'project-page-welcomePageTitle';
 const S_showCategoryIcon = 'project-page-showCategoryIcon';
-const S_categoryPlugins = 'project-page-categoryPlugins';
-// Category Plugins
-const getCategoryPlugins = () => {
-    return vscode.workspace.getConfiguration().get(S_categoryPlugins);
-};
+const S_categoryMaxHeight = 'project-page-categoryMaxHeight';
+const S_autoDetectCategory = 'project-page-autoDetectCategory';
+const S_categoryProfile = 'project-page-categoryProfile';
 // Message Handler
 const messageHandler = {
-    import: (context) => {
+    import: () => {
         // 批量导入项目
         vscode.window.showOpenDialog({
             canSelectFiles: false,
@@ -38,14 +34,14 @@ const messageHandler = {
                 files.forEach(file => {
                     let fullPath = path.join(target, file.name);
                     if (file.isDirectory()) {
-                        refreshRecentProject(context, fullPath);
+                        refreshRecentProject(fullPath);
                     }
                 });
                 vscode.commands.executeCommand(C_showWelcomePage);
             });
         });
     },
-    open: (context) => {
+    open: () => {
         // 打开文件夹
         vscode.window.showOpenDialog({
             canSelectFiles: false,
@@ -54,20 +50,19 @@ const messageHandler = {
             openLabel: 'Open'
         }).then(value => {
             if (!value) return;
-            refreshRecentProject(context, value[0].path);
+            refreshRecentProject(value[0].path);
             vscode.commands.executeCommand('vscode.openFolder', value[0]);
         });
     },
     openProject: (context, value) => {
         // 打开项目
-        refreshRecentProject(context, value.path, value.category);
-        // activateCategory(value.path, value.category); // deprecated
-        vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(value.path));
+        refreshRecentProject(value.path, value.category);
+        activateProject(value.path, value.category);
     },
     deleteProject: (context, value) => {
         // 删除项目
-        deleteProject(context, value.path, value.category);
-        postProjetctList(context, wvPanel);
+        deleteProject(value.path, value.category);
+        postProjetctList(wvPanel);
     },
     editProject: (context, value) => {
         // 编辑项目类别
@@ -75,9 +70,9 @@ const messageHandler = {
             placeHolder: '请输入新的项目类别'
         }).then(input => {
             if (!input) return;
-            deleteProject(context, value.path, value.category);
-            refreshRecentProject(context, value.path, input, false);
-            postProjetctList(context, wvPanel);
+            deleteProject(value.path, value.category);
+            refreshRecentProject(value.path, input, false);
+            postProjetctList(wvPanel);
         });
     },
     updateLogo: (context, value) => {
@@ -94,87 +89,67 @@ const messageHandler = {
         }).then(input => {
             if (input) {
                 let logo = input[0].fsPath;
-                let dest = path.join(context.extensionPath, 'resources', 'img', 'lang', value.category + '.svg');
+                let dest = path.join(context.extensionPath, 'resources', 'img', 'lang', encodeURIComponent(value.category) + '.svg');
                 fs.copyFile(logo, dest, err => {
                     if (err) {
                         console.error(err);
                     }
                 });
-                vscode.commands.executeCommand(C_showWelcomePage);
+                postProjetctList(wvPanel);
             }
         })
     },
-}
+    requireUpdate: () => {
+        // 页面请求更新
+        postProjetctList(wvPanel);
 
-/**
- * @deprecated 激活指定类别的插件
- * @param {String} projectPath 
- * @param {String} category 
- */
-function activateCategory(projectPath, category) {
-    if (category && getCategoryPlugins()[category]) {
-        updateDBToEnablePlugins(projectPath, category);
+        let conf = vscode.workspace.getConfiguration();
+        // Update title
+        wvPanel.webview.postMessage({
+            command: 'titleUpdate',
+            value: conf.get(S_welcomePageTitle)
+        });
+        // Show category icon
+        if (!conf.get(S_showCategoryIcon)) {
+            wvPanel.webview.postMessage({
+                command: 'hideCategoryIcon'
+            });
+        }
+        // Max category height
+        wvPanel.webview.postMessage({
+            command: 'categoryMaxHeight',
+            value: conf.get(S_categoryMaxHeight)
+        });
     }
 }
 
 /**
- * @deprecated 更新数据库启用插件，已弃用 https://github.com/microsoft/vscode/issues/151985
- * @param {String} projectPath 
+ * TODO: Open project with vscode profile
+ * @param {String} path 
  * @param {String} category 
  */
-async function updateDBToEnablePlugins(projectPath, category) {
-    let wsDbPath = path.join(wsStorageUtil.getWorkspaceStoragePath(projectPath), 'state.vscdb');
-    if (fs.existsSync(wsDbPath)) {
-        let globalPlugins = await dbUtil.getGlobalDisabledPlugins();
-        let workspacePlugins = await dbUtil.getWorkspaceEnabledPlugins(wsDbPath);
-        let globalPluginsMap = {};
-        for (const plugin of globalPlugins) {
-            globalPluginsMap[plugin.id] = plugin.uuid;
-        }
-        let workspacePluginsMap = {};
-        for (const plugin of workspacePlugins) {
-            workspacePluginsMap[plugin.id] = plugin.uuid;
-        }
-        let needPluginsID = [];
+function activateProject(path, category) {
+    const obj = getCategoryProfileObj();
+    let profileName;
+    if (category in obj) profileName = obj[category];
+    else profileName = category;
 
-        // find plugins that need to be enabled
-        console.log(getCategoryPlugins()[category]);
-        for (const pluginID of getCategoryPlugins()[category]) {
-            if (!(pluginID in workspacePluginsMap)) {
-                needPluginsID.push(pluginID);
-            }
-        }
+    // TODO: [Unimplemented] https://github.com/microsoft/vscode/issues/156173
+    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(path), { profile: profileName });
+}
 
-        console.log("globalPlugins", globalPlugins)
-        console.log("workspacePlugins", workspacePlugins)
-
-        if (needPluginsID.length > 0) {
-            // construct new enabled plugins object
-            let obj = [...workspacePlugins];
-            for (const pluginID of needPluginsID) {
-                if (!(pluginID in globalPluginsMap)) continue;
-                obj.push({
-                    id: pluginID,
-                    uuid: globalPluginsMap[pluginID],
-                });
-            }
-
-            // save to db
-            let result = await dbUtil.setWorkspaceEnabledPlugins(wsDbPath, obj);
-            console.log(result);
-        }
-    }
+function getCategoryProfileObj() {
+    return vscode.workspace.getConfiguration().get(S_categoryProfile);
 }
 
 /**
  * 删除指定项目，刷新项目列表对象；
  * 自动清理空类别
- * @param {vscode.ExtensionContext} context 
  * @param {String} projectPath 
  * @param {String} category 
  */
-function deleteProject(context, projectPath, category) {
-    let obj = context.globalState.get('projectList');
+function deleteProject(projectPath, category) {
+    let obj = getProjectListObj();
     let categoryObj = obj.data[category];
     let perv = categoryObj.items[projectPath].perv;
     let next = categoryObj.items[projectPath].next;
@@ -198,19 +173,18 @@ function deleteProject(context, projectPath, category) {
         }
         delete obj.data[category];
     }
-    context.globalState.update('projectList', obj);
+    setProjectListObj(obj);
 }
 
 /**
  * 更新最近打开的项目，刷新项目列表对象，在点击项目后调用；
  * 自动添加不存在的类别，将刚刚打开的项目和对应列表提升到最前
- * @param {vscode.ExtensionContext} context 
  * @param {String} projectPath 
  */
-function refreshRecentProject(context, projectPath, category = null, bringCategoryToHead = true) {
+function refreshRecentProject(projectPath, category = null, bringCategoryToHead = true) {
     if (category === null) category = projectCategoryDetect(projectPath);
 
-    let obj = context.globalState.get('projectList');
+    let obj = getProjectListObj();
     if (!obj) {
         obj = objUtil.createNewProjectListObj();
     }
@@ -225,7 +199,7 @@ function refreshRecentProject(context, projectPath, category = null, bringCatego
     objUtil.bringItemToCategoryHead(obj.data[category], projectPath);
     if (bringCategoryToHead) objUtil.bringCategoryToHead(obj, category);
 
-    context.globalState.update('projectList', obj);
+    setProjectListObj(obj);
 }
 
 /**
@@ -233,19 +207,13 @@ function refreshRecentProject(context, projectPath, category = null, bringCatego
  * @param {String} projectPath 
  */
 function projectCategoryDetect(projectPath) {
-    if (projectPath.indexOf('CLionProjects') !== -1) {
-        return 'C++';
-    } else if (projectPath.indexOf('GolandProjects') !== -1) {
-        return 'Go';
-    } else if (projectPath.indexOf('IdeaProjects') !== -1) {
-        return 'Java';
-    } else if (projectPath.indexOf('PycharmProjects') !== -1) {
-        return 'Python';
-    } else if (projectPath.indexOf('WebstormProjects') !== -1) {
-        return 'Web';
-    } else {
-        return 'Untagged';
+    const detectObj = vscode.workspace.getConfiguration().get(S_autoDetectCategory);
+    for (const key in detectObj) {
+        for (const str of detectObj[key]) {
+            if (projectPath.indexOf(str) !== -1) return key;
+        }
     }
+    return 'Untagged';
 }
 
 /**
@@ -274,18 +242,38 @@ function getWebviewContent(context, panel, htmlPath) {
 }
 
 /**
- * 
- * @param {vscode.ExtensionContext} context 
+ * Post projectList object to webview
  * @param {vscode.WebviewPanel} panel 
  */
-function postProjetctList(context, panel) {
-    let projectList = context.globalState.get('projectList', objUtil.createNewProjectListObj());
+function postProjetctList(panel) {
+    let projectList = getProjectListObj();
     if (projectList) {
         panel.webview.postMessage({
             command: 'projectListUpdate',
             value: projectList
         });
     }
+}
+
+function getProjectListObj() {
+    const filePath = path.join(process.env.HOME, '.vscode-project-page', 'projectList.json');
+    if (fs.existsSync(filePath)) {
+        const obj = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        return obj;
+    } else {
+        const obj = objUtil.createNewProjectListObj();
+        setProjectListObj(obj);
+        return obj;
+    }
+}
+
+function setProjectListObj(obj) {
+    const folderPath = path.join(process.env.HOME, '.vscode-project-page');
+    const filePath = path.join(folderPath, 'projectList.json');
+    if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify(obj));
 }
 
 /**
@@ -316,22 +304,6 @@ function activate(context) {
             undefined, context.subscriptions
         );
 
-        let conf = vscode.workspace.getConfiguration();
-
-        // Load Project List
-        postProjetctList(context, panel);
-        // Update Title
-        panel.webview.postMessage({
-            command: 'titleUpdate',
-            value: conf.get(S_welcomePageTitle)
-        });
-        // Show Category Icon
-        if (!conf.get(S_showCategoryIcon)) {
-            panel.webview.postMessage({
-                command: 'hideCategoryIcon'
-            });
-        }
-
         wvPanel = panel;
     });
     context.subscriptions.push(disposable);
@@ -341,10 +313,6 @@ function activate(context) {
         vscode.workspace.getConfiguration().get(S_showWelcomePageWhenStartup)) {
         vscode.commands.executeCommand(C_showWelcomePage);
     }
-
-    // TODO: DEBUG
-    // context.globalState.update('projectList', undefined);
-    console.log(context.globalState.get('projectList', objUtil.createNewProjectListObj()));
 }
 
 function deactivate() { }
