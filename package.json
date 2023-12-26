@@ -15,7 +15,7 @@
   ],
   "version": "0.1.0",
   "publisher": "hoywu",
-  "repository": "https://github.com/hoywu/project-page",
+  "repository": "https://github.com/hoywu/vscode-project-page",
   "engines": {
     "vscode": "^1.84.0"
   },
