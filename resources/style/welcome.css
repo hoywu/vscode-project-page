@@ -1,0 +1,94 @@
+:root {
+    --body-color: white;
+
+    --button-color: #999999;
+    --button-border-color: transparent;
+    --button-background: transparent;
+    --button-shadow-color: #999999;
+
+    --button-hover-color: #999999;
+    --button-hover-background: #2D2D2D;
+    --button-active-background: #454545;
+    --button-focus-border-color: #999999;
+}
+
+body {
+    width: 90%;
+    margin: auto;
+    box-sizing: border-box;
+    color: var(--body-color);
+}
+
+.header {
+    margin: 40px 20px 20px;
+
+    #text {
+        font-size: 26px;
+    }
+}
+
+.top-bar {
+    margin: 20px 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.fun-btns {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.button {
+    border: 0;
+    background: none;
+    outline: none;
+    padding: 5px;
+    background-color: transparent;
+    color: var(--button-color);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--button-border-color);
+    border-radius: 5px;
+    box-shadow: 0 0 5px 0 var(--button-shadow-color);
+}
+
+.button:hover {
+    color: var(--button-hover-color);
+    background-color: var(--button-hover-background);
+}
+
+.button:active {
+    background-color: var(--button-active-background)
+}
+
+.button:focus {
+    border: 1px solid var(--button-focus-border-color);
+}
+
+.active-btn {
+    background-color: var(--button-active-background)
+}
+
+.body {
+    margin: 20px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-around;
+    box-sizing: border-box;
+}
+
+.body>* {
+    flex: 1 1 calc(25% - 20px);
+    min-width: 340px;
+    max-width: 700px;
+    box-sizing: border-box;
+}
+
+.footer {
+    display: flex;
+    justify-content: center;
+}

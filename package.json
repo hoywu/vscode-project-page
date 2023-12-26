@@ -1,0 +1,92 @@
+{
+  "name": "project-page",
+  "displayName": "Project Page",
+  "description": "Replace the welcome page with a better recent projects view.",
+  "keywords": [
+    "project",
+    "page",
+    "recent",
+    "projects",
+    "welcome",
+    "home",
+    "folder",
+    "directory",
+    "workspace"
+  ],
+  "version": "0.0.1",
+  "publisher": "hoywu",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "",
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Project Page",
+      "properties": {
+        "project-page.showWelcomePageWhenStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show welcome page when startup"
+        },
+        "project-page-welcomePageTitle": {
+          "type": "string",
+          "default": "Welcome back",
+          "description": "Welcome page title"
+        },
+        "project-page-showCategoryIcon": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show category icon"
+        },
+        "project-page-categoryPlugins": {
+          "type": "object",
+          "description": "Category plugins",
+          "default": {
+            "C++": [
+              "ms-vscode.cpptools-extension-pack",
+              "ms-vscode.cpptools",
+              "ms-vscode.cpptools-themes",
+              "ms-vscode.cmake-tools",
+              "twxs.cmake",
+              "visualstudioexptteam.vscodeintellicode",
+              "visualstudioexptteam.intellicode-api-usage-examples"
+            ]
+          }
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "project-page.showWelcomePage",
+        "title": "Show Welcome Page"
+      }
+    ],
+    "menus": {},
+    "keybindings": []
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.3",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.84.0",
+    "@vscode/test-electron": "^2.3.6",
+    "eslint": "^8.52.0",
+    "glob": "^10.3.10",
+    "mocha": "^10.2.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.6"
+  }
+}

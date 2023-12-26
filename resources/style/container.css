@@ -1,0 +1,86 @@
+:root {
+    --container-shadow-color: rgba(255, 255, 255, 0.1);
+    --item-border-color: #ccc;
+    --item-title-color: white;
+    --item-path-color: #999;
+    --item-hover-background-color: #2e436e;
+}
+
+.container {
+    padding: 1em;
+    border-radius: 5px;
+    box-shadow: 0 0 10px var(--container-shadow-color);
+}
+
+.container-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 0.5em 0.5em 0.5em;
+    font-size: 1.3em;
+}
+
+.container-title>img {
+    width: 20px;
+    height: 20px;
+}
+
+.container-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.container-item {
+    flex: 1 1 0;
+    text-decoration: none;
+    cursor: pointer;
+    padding: 1em;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.container-item:hover {
+    background-color: var(--item-hover-background-color);
+}
+
+.container-item-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 2px;
+    background-color: var(--item-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    /* font-size: 1.2em; */
+    font-weight: bold;
+}
+
+.container-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.container-item-text,
+.container-item-text>* {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.container-item-title {
+    font-size: 1.1em;
+    color: var(--item-title-color);
+    max-width: 100%;
+}
+
+.container-item-path {
+    font-size: 0.9em;
+    color: var(--item-path-color);
+    max-width: 100%;
+}

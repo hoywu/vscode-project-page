@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <link rel="stylesheet" href="../style/welcome.css">
+    <link rel="stylesheet" href="../style/container.css">
+</head>
+
+<body data-vscode-context='{"preventDefaultContextMenuItems": true}'>
+    <div class="header">
+        <div class="header-text">
+            <span id="text">Welcome back</s>
+        </div>
+    </div>
+
+    <div class="top-bar">
+        <div class="fun-btns">
+            <button class="button" id="open-button">
+                <img src="../img/open.svg" width="20" height="20">
+                <span>Open...</span>
+            </button>
+        </div>
+
+        <div class="fun-btns">
+            <button class="button" id="import-button">
+                <img src="../img/import.svg" width="20" height="20">
+            </button>
+            <button class="button" id="edit-button">
+                <img src="../img/edit.svg" width="20" height="20">
+            </button>
+            <button class="button" id="del-button">
+                <img src="../img/del.svg" width="20" height="20">
+            </button>
+        </div>
+    </div>
+
+    <div class="body">
+
+    </div>
+
+    <div class="footer">
+        <!-- <div id="checkbox-div">
+            <input type="checkbox" id="checkbox-startup" name="checkbox-startup" value="startup" checked>
+            <label for="checkbox-startup">Show on startup</label>
+        </div> -->
+    </div>
+</body>
+
+<script>
+    // Variables
+    const vscode = acquireVsCodeApi();
+    const body = document.querySelector('.body');
+    const openButton = document.getElementById('open-button');
+    const importButton = document.getElementById('import-button');
+    const editButton = document.getElementById('edit-button');
+    const delButton = document.getElementById('del-button');
+    const headerText = document.getElementById('text');
+
+    const modeFlag = {
+        del: {
+            btn: delButton,
+            flag: false
+        },
+        edit: {
+            btn: editButton,
+            flag: false
+        }
+    }
+</script>
+
+<script>
+    // Functions
+    function itemClickEvent(category, path) {
+        // 点击项目条目事件
+        if (modeFlag.del.flag) {
+            // 删除项目
+            vscode.postMessage({
+                command: 'deleteProject',
+                value: {
+                    category: category,
+                    path: path
+                }
+            });
+        } else if (modeFlag.edit.flag) {
+            // 编辑项目类别
+            vscode.postMessage({
+                command: 'editProject',
+                value: {
+                    category: category,
+                    path: path
+                }
+            });
+        } else {
+            // 打开项目
+            vscode.postMessage({
+                command: 'openProject',
+                value: {
+                    category: category,
+                    path: path
+                }
+            });
+        }
+    }
+    function categoryLogoClickEvent(category) {
+        // 点击项目分类图标事件
+        vscode.postMessage({
+            command: 'updateLogo',
+            value: {
+                category: category
+            }
+        });
+    }
+
+    function updateProjectList(obj) {
+        if (!obj) return;
+        body.innerHTML = "";
+        let nextCategory = obj.head;
+        while (nextCategory) {
+            let elem = document.createElement('div');
+            elem.classList.add('container');
+            elem.innerHTML = generateContainerTemplate(nextCategory, obj.data[nextCategory]);
+            body.appendChild(elem);
+            nextCategory = obj.data[nextCategory].next;
+        }
+
+        let containers = body.querySelectorAll('.container');
+        for (let i = 0; i < containers.length; i++) {
+            let categoryLogoElem = containers[i].querySelector('.container-title>img');
+            let category = containers[i].querySelector('.container-title>span').innerText;
+            categoryLogoElem.addEventListener('click', () => {
+                categoryLogoClickEvent(category);
+            });
+
+            let items = containers[i].querySelectorAll('.container-item');
+            for (let j = 0; j < items.length; j++) {
+                let path = items[j].querySelector('.container-item-path').innerText;
+                items[j].addEventListener('click', () => {
+                    itemClickEvent(category, path);
+                });
+                items[j].title = path;
+            }
+        }
+    }
+
+    function generateContainerTemplate(categoryName, categoryObj) {
+        let items = "";
+        let nextItem = categoryObj.itemHead;
+        while (nextItem) {
+            let path = nextItem;
+            items += `
+                <a class="container-item">
+                    <!-- <div class="container-item-icon" style="background-color: orange"></div> -->
+                    <div class="container-item-text">
+                        <div class="container-item-title">${path.split('/').pop()}</div>
+                        <div class="container-item-path">${path}</div>
+                    </div>
+                </a>
+            `;
+            nextItem = categoryObj.items[nextItem].next;
+        }
+        return `
+            <div class="container-title">
+                <img class="category-logo" src="../img/lang/${categoryName}.svg">
+                <span>${categoryName}</span>
+            </div>
+            <div class="container-list">
+                ${items}
+            </div>
+        `;
+    }
+
+    function modeSwitch(mode) {
+        for (let key in modeFlag) {
+            modeFlag[key].btn.blur();
+            if (key === mode && modeFlag[key].flag === false) {
+                modeFlag[key].flag = true;
+                modeFlag[key].btn.classList.add('active-btn');
+            } else {
+                modeFlag[key].flag = false;
+                modeFlag[key].btn.classList.remove('active-btn');
+            }
+        }
+    }
+</script>
+
+<script>
+    // Initial
+    updateProjectList(vscode.getState());
+</script>
+
+<script>
+    // Message Listener
+    const messageHandler = {
+        projectListUpdate: (message) => {
+            // 更新项目列表数据
+            vscode.setState(message.value);
+            updateProjectList(message.value);
+        },
+        titleUpdate: (message) => {
+            // 更新页面大标题
+            headerText.innerText = message.value;
+        },
+        hideCategoryIcon: (message) => {
+            // 隐藏项目分类图标importent.styleSheets[0];
+            styleSheet.insertRule('.container-title>img { display: none; }', 0);
+        },
+    };
+
+    window.addEventListener('message', event => {
+        const message = event.data;
+        if (messageHandler[message.command]) {
+            messageHandler[message.command](message);
+        }
+    });
+</script>
+
+<script>
+    // Open Button
+    openButton.addEventListener('click', () => {
+        vscode.postMessage({
+            command: 'open'
+        });
+    });
+    // Import Button
+    importButton.addEventListener('click', () => {
+        vscode.postMessage({
+            command: 'import'
+        });
+    });
+    // Delete Button
+    delButton.addEventListener('click', () => {
+        modeSwitch('del');
+    });
+    // Edit Button
+    editButton.addEventListener('click', () => {
+        modeSwitch('edit');
+    });
+</script>
+
+</html>
